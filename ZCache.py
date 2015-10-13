@@ -30,7 +30,7 @@ hash_way.append(obj)
 
 # print out cache content
 def print_cache():
-    for i in range(1024):
+    for i in range(num_sets):
         print i, cache_tag[i]
         
 # convert addr to 16-byte string
@@ -56,7 +56,7 @@ def init(attacker_addr):
     cache_tag[attacker_set][attacker_way] = [attacker_addr, 1]
     # place the victim's cache lines
     victim_counter = phy_assoc*num_sets - 1
-    tag_range = int(math.pow(2,16) - 1)
+    tag_range = int(math.pow(2,tag_width) - 1)
     while victim_counter > 0:
         victim_addr = random.randint(0, tag_range)
         victim_way = random.randint(0, phy_assoc-1)
@@ -76,17 +76,17 @@ def relocate(tree, index):
         cache_tag[tree[index][0]][tree[index][1]] = tree[0]
     # replacing the second level
     else:
-        L1_index = (index - phy_assoc) / (phy_assoc - 1)
+        L1_index = (index - phy_assoc) / (phy_assoc - 1) + 1
         L2_index = index
         cache_tag[tree[L2_index][0]][tree[L2_index][1]] = cache_tag[tree[L1_index][0]][tree[L1_index][1]]
         cache_tag[tree[L1_index][0]][tree[L1_index][1]] = tree[0]
     
 # access a cache line
-# 0 -> miss, 1 -> hit
+# False -> miss, True -> hit
 def access(addr, ID):
     hit = False
     tree = [[addr, ID]]
-    victim_counter = phy_assoc
+    victim_counter = 0
     for i in range(phy_assoc):
         target_set = pick_set(i, addr)
         # compare tags
@@ -94,35 +94,73 @@ def access(addr, ID):
             hit = True
         else:
             tree.append([target_set, i])
+            if cache_tag[target_set][i][1] == ID:
+                victim_counter = victim_counter + 1
     
     if hit:
-        return 1
+        return True
     else:
         for i in range(1, phy_assoc+1):
             for j in range(phy_assoc):
                 if (i-1) != j:
                     target_set = pick_set(j, tree[i][0])
-                    if cache_tag[target_set][j][1] == 0:
+                    if cache_tag[target_set][j][1] == ID:
                         victim_counter = victim_counter + 1
                     tree.append([target_set, j])
     
-        print tree
-        print victim_counter
+        # print tree
+        # print victim_counter
+        
+        if victim_counter == 0:
+            return False
 
         eviction = random.randint(1, victim_counter)
         eviction_index = 0
         for i in range(1, len(tree)):
-            if cache_tag[tree[i][0]][tree[i][1]][1] == 0:
+            if cache_tag[tree[i][0]][tree[i][1]][1] == ID:
                 eviction = eviction - 1
             if eviction == 0:
                 eviction_index = i 
                 break
 
-        print eviction_index
+        # print "eviction_index", eviction_index
         relocate(tree, eviction_index)
-        print_cache()
+        # print_cache()
+        return False
 
 # attack
-init(100)
+init_addr = 100
+init(init_addr)
 print_cache()
-access(1000, 1)
+succeed = False
+succeed_addr = 0
+tag_range = int(math.pow(2,16) - 1)
+while succeed != True:
+    attacker_addr = random.randint(0, tag_range)
+    succeed_1 = access(attacker_addr, 1)
+    succeed_2 = access(attacker_addr, 1)
+    # Found an address that collide with previous address
+    if succeed_1 == False and succeed_2 == True:
+        succeed_3 = access(init_addr, 1)
+        succeed_4 = access(init_addr, 1)
+        if succeed_3 == False and succeed_4 == True:
+            succeed_addr = attacker_addr
+            succeed = True
+            print "Found a conflicting address", succeed_addr
+            # print_cache()
+        else:
+            init_addr = attacker_addr
+            print "new init_addr", init_addr
+    
+for i in range(1000):
+    for j in range(1000):
+        victim_addr = random.randint(0, tag_range)
+        access(victim_addr, 0)    
+    succeed_1 = access(succeed_addr, 1)
+    succeed_2 = access(succeed_addr, 1)
+    if succeed_1 == False and succeed_2 == True:
+        print "Attacker's cache line is NOT relocated"
+        access(init_addr, 1)
+    else:
+        print "Attacker's cache line is relocated"
+        break
