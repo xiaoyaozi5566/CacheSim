@@ -76,7 +76,7 @@ def relocate(tree, index):
         cache_tag[tree[index][0]][tree[index][1]] = tree[0]
     # replacing the second level
     else:
-        L1_index = (index - phy_assoc) / (phy_assoc - 1) + 1
+        L1_index = (index - phy_assoc - 1) / (phy_assoc - 1) + 1
         L2_index = index
         cache_tag[tree[L2_index][0]][tree[L2_index][1]] = cache_tag[tree[L1_index][0]][tree[L1_index][1]]
         cache_tag[tree[L1_index][0]][tree[L1_index][1]] = tree[0]
@@ -103,7 +103,7 @@ def access(addr, ID):
         for i in range(1, phy_assoc+1):
             for j in range(phy_assoc):
                 if (i-1) != j:
-                    target_set = pick_set(j, tree[i][0])
+                    target_set = pick_set(j, cache_tag[tree[i][0]][tree[i][1]][0])
                     if cache_tag[target_set][j][1] == ID:
                         victim_counter = victim_counter + 1
                     tree.append([target_set, j])
