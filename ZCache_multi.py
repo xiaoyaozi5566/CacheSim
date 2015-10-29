@@ -150,8 +150,6 @@ for i in range(len(cache_tag)):
 
 print_cache()
 input_filename = sys.argv[1]
-# if insert_flag == 1, insert victim's accesses
-insert_flag = int(sys.argv[2])
 inputfile = open(input_filename, 'r')
 attacker_addr = []
 for line in inputfile:
@@ -178,7 +176,7 @@ ax.set_ylabel("Number of rounds", fontsize = 20)
 ax.set_title("Cache misses over time", fontsize = 20)
 cax = ax.matshow(result, interpolation='nearest', aspect = ratio)
 fig.colorbar(cax)
-plt.savefig('hit_miss_'+ str(len(attacker_addr)) + '_' + str(insert_flag) + '_scheme1.pdf', bbox_inches='tight')
+plt.savefig('hit_miss_'+ str(len(attacker_addr)) + '_no.pdf', bbox_inches='tight')
 plt.close()
 
 cache_tag = []
@@ -210,6 +208,38 @@ ax.set_ylabel("Number of rounds", fontsize = 20)
 ax.set_title("Cache misses over time", fontsize = 20)
 cax = ax.matshow(result, interpolation='nearest', aspect = ratio)
 fig.colorbar(cax)
-plt.savefig('hit_miss_'+ str(len(attacker_addr)) + '_' + str(insert_flag) + '_scheme2.pdf', bbox_inches='tight')
+plt.savefig('hit_miss_'+ str(len(attacker_addr)) + '_diff.pdf', bbox_inches='tight')
+plt.close()
+
+cache_tag = []
+for i in range(len(cache_tag_copy)):
+    cache_tag.append(cache_tag_copy[i][:])
+    
+print_cache()
+result = []
+for i in range(num_rounds):
+    each_round = []
+    for j in range(len(attacker_addr)):
+        hit = access(attacker_addr[j], 1)
+        if hit:
+            each_round.append(1)
+        else:
+            each_round.append(0)
+    result.append(each_round)
+    print "round", i
+    # insert victim's accesses
+    for j in range(len(attacker_addr)*10):
+        victim_addr = 100
+        access(victim_addr, 0)
+
+ratio = len(attacker_addr)*1.0/num_rounds
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.set_xlabel("Accesses in one round", fontsize = 20)
+ax.set_ylabel("Number of rounds", fontsize = 20)
+ax.set_title("Cache misses over time", fontsize = 20)
+cax = ax.matshow(result, interpolation='nearest', aspect = ratio)
+fig.colorbar(cax)
+plt.savefig('hit_miss_'+ str(len(attacker_addr)) + '_same.pdf', bbox_inches='tight')
 plt.close()
 
